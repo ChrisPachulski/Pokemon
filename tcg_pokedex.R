@@ -22,9 +22,12 @@ invisible(chrome <-function(ip){
     remDr$maxWindowSize()
     remDr
 })
-pacman::p_load(tidyverse,rvest,jsonlite,devtools,googlesheets4,googledrive,googlesheets,readr,dplyr,gargle,httr,bigrquery,RSelenium)
+pacman::p_load(tidyverse,rvest,jsonlite,devtools,googlesheets4,googledrive,readr,dplyr,gargle,httr,bigrquery,RSelenium)
 
-
+options(httr_oob_default=TRUE) 
+options(gargle_oauth_email = "pachun95@gmail.com")
+drive_auth(email = "pachun95@gmail.com",use_oob=TRUE)
+gs4_auth(email = "pachun95@gmail.com",use_oob=TRUE)
 
 #TCG- Market####
 Start_Time <- Sys.time()
@@ -208,7 +211,10 @@ remDr$navigate("https://www.tcgplayer.com/search/magic/product?productLineName=p
 Sys.sleep(4)
 remDr$findElement('xpath','//*[@id="app"]/div/section[2]/div/div[1]/button')$clickElement()
 Sys.sleep(4)
-remDr$findElement('xpath','//*[@id="app"]/div/section[2]/section/div[1]/div[2]/div[2]/div[2]/div[2]')$clickElement()
+tryCatch({remDr$findElement('xpath','//*[@id="app"]/div/section[2]/section/div[1]/div[2]/div[2]/div[2]/div[2]')$clickElement()}, 
+         error = function(e){remDr$findElement('xpath','//*[@id="app"]/div/section[2]/section/div[1]/div[2]/div[3]/div[2]/div[2]')$clickElement()
+         })# webElem <- remDr$findElements("css", "iframe")
+#
 # webElem <- remDr$findElements("css", "iframe")
 # remDr$switchToFrame(webElem[[1]])
 stacked_text <- NULL
@@ -417,7 +423,7 @@ for(q in 1:length(stacked_text$editions)){
     
     
     Pokemon_Edition_Rankings <- rbind(Pokemon_Edition_Rankings_SR,Pokemon_Edition_Rankings_RR) %>% data.frame() %>%
-        mutate(across(.cols = MKT_EST:Rank, .fns = as.numeric)) %>% replace_na(list(Ovr_Rank = 0))
+        mutate(across(.cols = MKT_EST:Total_Copies, .fns = as.numeric)) %>% replace_na(list(Ovr_Rank = 0))
     Sys.sleep(.75)
     
     bq_table = unique(tolower(gsub("\\)","",gsub("\\(","",gsub("___","_",gsub("-","_",gsub("&","and",gsub("’","",gsub("\\.","",gsub(":","",gsub("'","",gsub(" ","_",Pokemon_Edition_Rankings$Set))))))))))))
@@ -439,3 +445,14 @@ print(paste("BQ Pokemon_All_Editions Upload Successful!"))
 End_Time <- Sys.time()
 print(paste("TCG Pokedex Collection Lasted:",round(End_Time - Start_Time,2)))
 
+options(httr_oob_default=TRUE) 
+options(gargle_oauth_email = "pachun95@gmail.com")
+drive_auth(email = "pachun95@gmail.com",use_oob=TRUE)
+gs4_auth(email = "pachun95@gmail.com",use_oob=TRUE)
+
+ss <- drive_get("Pokemon_TCG")
+
+sheet_write(
+    Pokemon_All_Editions,
+    ss = ss,
+    sheet = "ovr")
